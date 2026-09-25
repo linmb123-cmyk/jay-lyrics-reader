@@ -1224,12 +1224,35 @@ function renderLyrics(idx) {
   updateProgress();
 }
 
+// 用户手动滚动时，暂停自动滚动
+let userScrolling = false;
+let userScrollTimer = null;
+window.addEventListener('scroll', () => {
+  userScrolling = true;
+  clearTimeout(userScrollTimer);
+  userScrollTimer = setTimeout(() => { userScrolling = false; }, 1500);
+}, { passive: true });
+
 function highlightLine(idx) {
   document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
   const el = document.querySelector(`.line[data-idx="${idx}"]`);
-  if (el) {
-    el.classList.add('active');
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (!el) return;
+  el.classList.add('active');
+
+  // 用户正在手动滚动时，不自动滚动
+  if (userScrolling) return;
+
+  // 智能滚动：只在当前行不在舒适可视区时才滚动
+  const rect = el.getBoundingClientRect();
+  const viewH = window.innerHeight;
+  // 舒适区：视口上方 25% 到 下方 55% 之间
+  const topLimit = viewH * 0.25;
+  const bottomLimit = viewH * 0.55;
+
+  if (rect.top < topLimit || rect.bottom > bottomLimit) {
+    // 滚动到上方 1/3 处，方便看到上下文
+    const targetY = window.scrollY + rect.top - viewH * 0.33;
+    window.scrollTo({ top: targetY, behavior: 'smooth' });
   }
 }
 
