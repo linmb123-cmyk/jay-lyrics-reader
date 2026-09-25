@@ -26,8 +26,6 @@
   /* 锁定模式：歌词区域吸顶，页面不能再滑动 */
   body.locked {
     overflow: hidden;
-    position: fixed;
-    width: 100%;
   }
   body.locked .container {
     height: 100vh;
@@ -1249,15 +1247,16 @@ function renderLyrics(idx) {
 
 // 吸顶锁定：滚动到歌词区域时锁定页面，只有歌词区域可滚动
 let isLocked = false;
+let unlockCooldown = 0;
 
 function checkLock() {
+  if (Date.now() < unlockCooldown) return; // 解锁冷却中，不锁定
   const rect = lyricsArea.getBoundingClientRect();
   if (!isLocked && rect.top <= 0) {
-    // 歌词区域到达顶部，锁定页面
+    window._savedScrollY = window.scrollY;
     document.body.classList.add('locked');
     isLocked = true;
-    // 记录滚动位置，解锁时恢复
-    window._savedScrollY = window.scrollY;
+    lyricsArea.scrollTop = 1;
   }
 }
 
@@ -1275,15 +1274,37 @@ window.addEventListener('scroll', () => {
   if (!isLocked) checkLock();
 }, { passive: true });
 
-// 歌词区域滚动到顶部时解锁
-lyricsArea.addEventListener('scroll', () => {
+// 解锁：用 requestAnimationFrame 持续检测 scrollTop，不依赖事件
+function doUnlock() {
+  document.body.classList.remove('locked');
+  isLocked = false;
+  unlockCooldown = Date.now() + 500; // 500ms 冷却，防止立即重新锁定
+  window.scrollTo(0, (window._savedScrollY || 0) - 10);
+}
+function checkUnlockLoop() {
   if (isLocked && lyricsArea.scrollTop <= 0) {
-    // 解锁页面
-    document.body.classList.remove('locked');
-    isLocked = false;
-    // 恢复之前的滚动位置
-    window.scrollTo(0, window._savedScrollY || 0);
+    doUnlock();
   }
+  requestAnimationFrame(checkUnlockLoop);
+}
+requestAnimationFrame(checkUnlockLoop);
+
+// 辅助：wheel/touchmove 向上时也触发解锁
+function tryUnlock(e) {
+  if (!isLocked || lyricsArea.scrollTop > 0) return;
+  let goingUp = false;
+  if (e.type === 'wheel') goingUp = e.deltaY < 0;
+  else if (e.type === 'touchmove') {
+    const touch = e.touches[0];
+    goingUp = touch.clientY > (window._lastTouchY || touch.clientY);
+    window._lastTouchY = touch.clientY;
+  }
+  if (goingUp) doUnlock();
+}
+lyricsArea.addEventListener('wheel', tryUnlock, { passive: true });
+lyricsArea.addEventListener('touchmove', tryUnlock, { passive: true });
+lyricsArea.addEventListener('touchstart', (e) => {
+  window._lastTouchY = e.touches[0].clientY;
 }, { passive: true });
 
 // 用户手动滚动时，暂停自动滚动
