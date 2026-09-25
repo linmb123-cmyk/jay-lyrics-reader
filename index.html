@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>周杰伦歌曲歌词朗读器 | English Lyrics Reader</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 0;
+    overscroll-behavior: none;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .header {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: #fff;
+    padding: 16px 16px 14px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .header h1 { font-size: 18px; margin-bottom: 2px; }
+  .header p { font-size: 11px; opacity: 0.9; }
+
+  .controls {
+    padding: 12px 14px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    flex-shrink: 0;
+  }
+  .song-select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    background: #fff;
+    margin-bottom: 10px;
+    cursor: pointer;
+    outline: none;
+    min-height: 44px;
+  }
+  .song-select:focus { border-color: #667eea; }
+
+  .presets {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .preset-btn {
+    flex: 1;
+    padding: 8px 4px;
+    font-size: 13px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 40px;
+  }
+  .preset-btn:active { border-color: #667eea; }
+  .preset-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  .settings-toggle {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 13px;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    background: #fff;
+    color: #666;
+    cursor: pointer;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .settings-toggle .arrow { transition: transform 0.2s; display: inline-block; }
+  .settings-toggle.open .arrow { transform: rotate(180deg); }
+
+  .settings {
+    display: none;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+  }
+  .settings.open { display: grid; }
+  .setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: #555;
+  }
+  .setting-item label { font-weight: 500; }
+  .setting-item select {
+    padding: 6px 6px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 12px;
+    min-height: 36px;
+    max-width: 100%;
+  }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .slider-row input[type=range] { flex: 1; min-width: 0; }
+  .slider-row span { font-size: 11px; color: #888; min-width: 28px; text-align: right; }
+
+  .toggle-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+  }
+  .toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: #555;
+    cursor: pointer;
+    min-height: 36px;
+  }
+  .toggle-item input { width: 16px; height: 16px; }
+
+  .lyrics-area {
+    padding: 16px 14px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 100px;
+  }
+  .song-title {
+    text-align: center;
+    color: #333;
+    font-size: 18px;
+    margin-bottom: 2px;
+  }
+  .song-meta {
+    text-align: center;
+    color: #888;
+    font-size: 11px;
+    margin-bottom: 16px;
+  }
+  .line {
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    background: #f5f5f5;
+    transition: all 0.2s;
+    cursor: pointer;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .line:active { background: #eef0ff; }
+  .line.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+  }
+  .line.active .cn, .line.active .en { color: #fff; }
+  .line .cn {
+    color: #333;
+    font-size: 15px;
+    margin-bottom: 3px;
+    line-height: 1.5;
+  }
+  .line .en {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .line .en::before { content: "🔊 "; }
+  .line .en .word {
+    cursor: pointer;
+    border-bottom: 1px dashed transparent;
+    transition: all 0.15s;
+    padding: 0 1px;
+    border-radius: 3px;
+  }
+  .line .en .word:hover {
+    background: rgba(102,126,234,0.15);
+    border-bottom-color: #667eea;
+  }
+  .line .en .vocab {
+    background: linear-gradient(180deg, transparent 60%, rgba(255,215,0,0.5) 60%);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+  .line .en .vocab:hover {
+    background: linear-gradient(180deg, rgba(255,215,0,0.3) 60%, rgba(255,215,0,0.7) 60%);
+  }
+  .line.active .en .word:hover { color: #fff; background: rgba(255,255,255,0.2); }
+  .line.active .en .vocab { background: linear-gradient(180deg, transparent 60%, rgba(255,255,255,0.4) 60%); }
+
+  /* 隐藏模式 */
+  body.hide-cn .line .cn { display: none; }
+  body.hide-en .line .en { display: none; }
+  body.hide-cn .line .en::before { content: "🔤 "; }
+  body.hide-en .line .cn::before { content: "🇨🇳 "; }
+
+  /* 词汇释义弹窗 */
+  .vocab-popup {
+    position: fixed;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    z-index: 1000;
+    max-width: 260px;
+    font-size: 13px;
+    pointer-events: none;
+  }
+  .vocab-popup .vp-word { font-weight: 700; color: #667eea; font-size: 15px; }
+  .vocab-popup .vp-phon { color: #888; font-size: 12px; margin: 2px 0; }
+  .vocab-popup .vp-def { color: #333; line-height: 1.5; }
+
+  /* 词汇表 */
+  .vocab-section {
+    margin-top: 20px;
+    padding: 14px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 1px solid #eee;
+  }
+  .vocab-section h3 {
+    font-size: 15px;
+    color: #333;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .vocab-section h3 .vocab-toggle {
+    font-size: 12px;
+    color: #667eea;
+    transition: transform 0.2s;
+  }
+  .vocab-section.collapsed h3 .vocab-toggle { transform: rotate(-90deg); }
+  .vocab-section.collapsed .vocab-list { display: none; }
+  .vocab-section h3 .vocab-count {
+    font-size: 12px;
+    color: #999;
+    font-weight: normal;
+  }
+  .vocab-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .vocab-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .vocab-item:hover { border-color: #667eea; transform: translateX(2px); }
+  .vocab-item .vi-word { font-weight: 600; color: #667eea; min-width: 90px; font-size: 13px; }
+  .vocab-item .vi-phon { color: #999; font-size: 11px; min-width: 60px; }
+  .vocab-item .vi-def { color: #555; font-size: 13px; line-height: 1.5; }
+
+  /* 显示模式按钮组 */
+  .display-modes {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    min-height: 32px;
+    transition: all 0.15s;
+  }
+  .mode-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  .player-bar {
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid #eee;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 800px;
+    flex-shrink: 0;
+    z-index: 100;
+  }
+  .btn {
+    padding: 0 14px;
+    font-size: 14px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    flex: 2;
+    font-size: 16px;
+  }
+  .btn-secondary { background: #e9ecef; color: #495057; flex: 1; }
+  .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: #fff; flex: 1; }
+  .btn-warning { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); color: #fff; flex: 1; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .progress {
+    padding: 6px 14px;
+    text-align: center;
+    color: #888;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  .tip { display: none; }
+
+  /* 大屏优化 */
+  @media (min-width: 600px) {
+    body { padding: 16px; }
+    .container {
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      min-height: auto;
+    }
+    .header { padding: 28px 20px; }
+    .header h1 { font-size: 26px; margin-bottom: 6px; }
+    .header p { font-size: 13px; }
+    .controls { padding: 18px 24px; }
+    .song-select { padding: 12px 16px; font-size: 16px; margin-bottom: 14px; }
+    .presets { gap: 8px; margin-bottom: 14px; }
+    .preset-btn { padding: 8px 12px; font-size: 13px; }
+    .settings-toggle { display: none; }
+    .settings {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+    .setting-item { font-size: 13px; }
+    .setting-item select { padding: 6px 8px; font-size: 13px; }
+    .slider-row span { font-size: 12px; min-width: 32px; }
+    .toggle-row { gap: 16px; margin-top: 12px; padding-top: 12px; }
+    .toggle-item { font-size: 13px; }
+    .lyrics-area {
+      padding: 24px;
+      min-height: 280px;
+      max-height: 480px;
+      padding-bottom: 24px;
+    }
+    .song-title { font-size: 20px; margin-bottom: 4px; }
+    .song-meta { font-size: 12px; margin-bottom: 20px; }
+    .line {
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .line .cn {
+      font-size: 16px;
+      line-height: 1.6;
+      flex: 1;
+      margin-bottom: 0;
+      border-right: 1px solid #e0e0e0;
+      padding-right: 20px;
+    }
+    .line .en {
+      font-size: 14px;
+      line-height: 1.6;
+      flex: 1;
+    }
+    .line.active .cn { border-right-color: rgba(255,255,255,0.3); }
+    .player-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 800px;
+      padding: 12px 24px;
+      padding-bottom: 12px;
+      background: #f8f9fa;
+      gap: 10px;
+      justify-content: center;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+      border-top: 1px solid #eee;
+    }
+    .btn { padding: 10px 20px; flex: none; }
+    .btn-primary { flex: none; }
+    .progress { padding: 0 24px 80px; font-size: 12px; }
+    .tip {
+      display: block;
+      padding: 14px 24px;
+      background: #fff3cd;
+      color: #856404;
+      font-size: 12px;
+      border-top: 1px solid #ffeeba;
+      line-height: 1.6;
+    }
+    .tip strong { color: #856404; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🎵 周杰伦歌曲歌词朗读器</h1>
+    <p>English Lyrics Reader · 逐句朗读 · 跟读学习</p>
+  </div>
+
+  <div class="controls">
+    <select class="song-select" id="songSelect">
+      <option value="">-- 请选择歌曲 --</option>
+    </select>
+
+    <div class="presets">
+      <button class="preset-btn active" data-preset="calm">😌 柔和</button>
+      <button class="preset-btn" data-preset="normal">🎯 标准</button>
+      <button class="preset-btn" data-preset="bright">✨ 明亮</button>
+      <button class="preset-btn" data-preset="happy">🎉 欢快</button>
+    </div>
+
+    <button class="settings-toggle" id="settingsToggle">⚙️ 设置 <span class="arrow">▼</span></button>
+
+    <div class="settings" id="settingsPanel">
+      <div class="setting-item">
+        <label>朗读语言</label>
+        <select id="langSelect">
+          <option value="en">仅英文</option>
+          <option value="zh">仅中文</option>
+          <option value="both">中英双语</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label>英文语音</label>
+        <select id="enVoice"></select>
+      </div>
+      <div class="setting-item">
+        <label>中文语音</label>
+        <select id="zhVoice"></select>
+      </div>
+      <div class="setting-item">
+        <label>语速</label>
+        <div class="slider-row">
+          <input type="range" id="rate" min="0.4" max="1.5" step="0.05" value="0.85">
+          <span id="rateVal">0.85</span>
+        </div>
+      </div>
+      <div class="setting-item">
+        <label>音调</label>
+        <div class="slider-row">
+          <input type="range" id="pitch" min="0.5" max="1.5" step="0.05" value="1.0">
+          <span id="pitchVal">1.0</span>
+        </div>
+      </div>
+      <div class="setting-item">
+        <label>音量</label>
+        <div class="slider-row">
+          <input type="range" id="volume" min="0.1" max="1.0" step="0.05" value="1.0">
+          <span id="volumeVal">100%</span>
+        </div>
+      </div>
+      <div class="setting-item">
+        <label>句间停顿(ms)</label>
+        <div class="slider-row">
+          <input type="range" id="pause" min="0" max="3000" step="100" value="500">
+          <span id="pauseVal">500</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <label class="toggle-item"><input type="checkbox" id="autoPlay" checked> 自动连播</label>
+      <label class="toggle-item"><input type="checkbox" id="loopLine"> 单句循环</label>
+      <label class="toggle-item"><input type="checkbox" id="loopAll"> 全文循环</label>
+    </div>
+
+    <div class="display-modes">
+      <button class="mode-btn active" data-mode="all">🌐 中英对照</button>
+      <button class="mode-btn" data-mode="en">🔤 仅英文</button>
+      <button class="mode-btn" data-mode="cn">🇨🇳 仅中文</button>
+    </div>
+  </div>
+
+  <div class="lyrics-area" id="lyricsArea">
+    <p style="text-align:center;color:#999;padding:60px 0;">👆 请先选择一首歌曲</p>
+  </div>
+
+  <div class="progress" id="progress"></div>
+
+  <div class="player-bar">
+    <button class="btn btn-secondary" id="prevBtn">⏮ 上一句</button>
+    <button class="btn btn-primary" id="playBtn">▶ 朗读</button>
+    <button class="btn btn-secondary" id="nextBtn">下一句 ⏭</button>
+    <button class="btn btn-success" id="autoBtn">🔄 全文朗读</button>
+    <button class="btn btn-warning" id="loopBtn">🔁 单句循环</button>
+    <button class="btn btn-secondary" id="stopBtn">⏹ 停止</button>
+  </div>
+
+  <div class="tip">
+    💡 <strong>使用提示：</strong>
+    点击任意歌词可单独朗读；语音列表取决于你的操作系统和浏览器，推荐使用 Chrome/Edge 以获得更多高质量语音；
+    首次使用时语音列表可能需要几秒加载，如列表为空请刷新页面；
+    "单句循环"会反复朗读当前句，适合跟读练习。
+  </div>
+</div>
+
+<script>
+const songs = [
+  {
+    title: "稻香 (Rice Field)",
+    meta: "作词：周杰伦 | 作曲：周杰伦",
+    lines: [
+      {cn:"对这个世界如果你有太多的抱怨", en:"If you have too many complaints about this world"},
+      {cn:"跌倒了就不敢继续往前走", en:"You won't dare to keep walking forward after falling down"},
+      {cn:"为什么人要这么的脆弱堕落", en:"Why do people have to be so fragile and degenerate"},
+      {cn:"请你打开电视看看", en:"Please turn on the TV and take a look"},
+      {cn:"多少人为生命在努力勇敢的走下去", en:"How many people are bravely moving forward for life"},
+      {cn:"我们是不是该知足", en:"Shouldn't we be content"},
+      {cn:"珍惜一切 就算没有拥有", en:"Cherish everything, even if we don't possess it"},
+      {cn:"还记得你说家是唯一的城堡", en:"Remember you said home is the only castle"},
+      {cn:"随着稻香河流继续奔跑", en:"Running along the river with the fragrance of rice"},
+      {cn:"微微笑 小时候的梦我知道", en:"Smiling softly, I remember my childhood dreams"},
+      {cn:"不要哭让萤火虫带着你逃跑", en:"Don't cry, let the fireflies take you away"},
+      {cn:"乡间的歌谣永远的依靠", en:"The country folk songs are forever your reliance"},
+      {cn:"回家吧 回到最初的美好", en:"Go home, back to the original beauty"},
+      {cn:"不要这么容易就想放弃", en:"Don't give up so easily"},
+      {cn:"就像我说的", en:"Just like I said"},
+      {cn:"追不到的梦想 换个梦不就得了", en:"If you can't catch your dream, just change it"},
+      {cn:"为自己的人生鲜艳上色", en:"Color your own life vividly"},
+      {cn:"先把爱涂上喜欢的颜色", en:"First paint love with your favorite color"},
+      {cn:"笑一个吧 功成名就不是目的", en:"Smile, success and fame are not the goal"},
+      {cn:"让自己快乐快乐这才叫做意义", en:"Making yourself happy is what truly matters"},
+      {cn:"童年的纸飞机", en:"The paper airplane from childhood"},
+      {cn:"现在终于飞回我手里", en:"Has finally flown back into my hands"},
+      {cn:"所谓的那快乐", en:"That so-called happiness"},
+      {cn:"赤脚在田里追蜻蜓追到累了", en:"Running barefoot in the field chasing dragonflies until tired"},
+      {cn:"偷摘水果被蜜蜂给叮到怕了", en:"Stealing fruit and getting stung by bees until scared"},
+      {cn:"谁在偷笑呢", en:"Who is snickering"},
+      {cn:"我靠着稻草人吹着风唱着歌睡着了", en:"I lean against the scarecrow, blowing in the wind, singing, and fall asleep"},
+      {cn:"哦哦 午后吉它在虫鸣中更清脆", en:"Oh oh, the afternoon guitar sounds crisper among the chirping insects"},
+      {cn:"哦哦 阳光洒在路上就不怕心碎", en:"Oh oh, sunlight sprinkles on the road, no fear of heartbreak"},
+      {cn:"珍惜一切 就算没有拥有", en:"Cherish everything, even if we don't possess it"}
+    ]
+  },
+  {
+    title: "青花瓷 (Blue and White Porcelain)",
+    meta: "作词：方文山 | 作曲：周杰伦",
+    lines: [
+      {cn:"素胚勾勒出青花笔锋浓转淡", en:"The plain body is outlined with blue, the brushstroke fades from thick to thin"},
+      {cn:"瓶身描绘的牡丹一如你初妆", en:"The peony painted on the vase is like your first makeup"},
+      {cn:"冉冉檀香透过窗心事我了然", en:"Sandalwood slowly drifts through the window, I understand your worries"},
+      {cn:"宣纸上走笔至此搁一半", en:"The brush pauses halfway on the rice paper"},
+      {cn:"釉色渲染仕女图韵味被私藏", en:"The glaze renders the lady painting, its charm hidden away"},
+      {cn:"而你嫣然的一笑如含苞待放", en:"And your charming smile is like a budding flower waiting to bloom"},
+      {cn:"你的美一缕飘散", en:"A wisp of your beauty drifts away"},
+      {cn:"去到我去不了的地方", en:"To a place I cannot reach"},
+      {cn:"天青色等烟雨 而我在等你", en:"The sky-blue hue waits for misty rain, and I am waiting for you"},
+      {cn:"炊烟袅袅升起 隔江千万里", en:"Cooking smoke rises gently, thousands of miles across the river"},
+      {cn:"在瓶底书汉隶仿前朝的飘逸", en:"Writing Han clerical script at the bottom of the vase, imitating the elegance of past dynasties"},
+      {cn:"就当我为遇见你伏笔", en:"Consider it my foreshadowing for meeting you"},
+      {cn:"月色被打捞起 晕开了结局", en:"The moonlight is lifted up, blurring the ending"},
+      {cn:"如传世的青花瓷自顾自美丽", en:"Like a legendary blue and white porcelain, beautiful in its own right"},
+      {cn:"你眼带笑意", en:"Your eyes carry a smile"},
+      {cn:"色白花青的锦鲤跃然于碗底", en:"The white-bodied blue koi fish leaps vividly at the bottom of the bowl"},
+      {cn:"临摹宋体落款时却惦记着你", en:"While copying the Song font for the signature, I'm thinking of you"},
+      {cn:"你隐藏在窑烧里千年的秘密", en:"Your thousand-year secret hidden in the kiln firing"},
+      {cn:"极细腻犹如绣花针落地", en:"So delicate, like an embroidery needle falling to the ground"},
+      {cn:"帘外芭蕉惹骤雨门环惹铜绿", en:"The banana leaves outside the curtain provoke sudden rain, the door knocker provokes verdigris"},
+      {cn:"而我路过那江南小镇惹了你", en:"And passing by that Jiangnan town, I provoked you"},
+      {cn:"在泼墨山水画里", en:"In the splash-ink landscape painting"},
+      {cn:"你从墨色深处被隐去", en:"You are hidden away in the depths of the ink"}
+    ]
+  },
+  {
+    title: "七里香 (Common Jasmine Orange)",
+    meta: "作词：方文山 | 作曲：周杰伦",
+    lines: [
+      {cn:"窗外的麻雀 在电线杆上多嘴", en:"The sparrows outside the window are chattering on the power pole"},
+      {cn:"你说这一句 很有夏天的感觉", en:"You said this line feels very much like summer"},
+      {cn:"手中的铅笔 在纸上来来回回", en:"The pencil in my hand moves back and forth on the paper"},
+      {cn:"我用几行字形容你是我的谁", en:"I use a few lines to describe who you are to me"},
+      {cn:"秋刀鱼的滋味 猫跟你都想了解", en:"The taste of saury, both the cat and you want to understand"},
+      {cn:"初恋的香味就这样被我们寻回", en:"The fragrance of first love is thus retrieved by us"},
+      {cn:"那温暖的阳光 像刚摘的鲜艳草莓", en:"That warm sunlight is like freshly picked bright strawberries"},
+      {cn:"你说你舍不得吃掉这一种感觉", en:"You said you couldn't bear to eat away this feeling"},
+      {cn:"雨下整夜 我的爱溢出就像雨水", en:"Rain fell all night, my love overflowed like rainwater"},
+      {cn:"院子落叶 跟我的思念厚厚一叠", en:"The fallen leaves in the yard pile up thick like my longing"},
+      {cn:"几句是非 也无法将我的热情冷却", en:"A few words of gossip cannot cool down my passion"},
+      {cn:"你出现在我诗的每一页", en:"You appear on every page of my poems"},
+      {cn:"窗台蝴蝶 像诗里纷飞的美丽章节", en:"The butterfly on the windowsill is like a beautiful chapter fluttering in the poem"},
+      {cn:"我接着写 把永远爱你写进诗的结尾", en:"I continue writing, putting love you forever at the end of the poem"},
+      {cn:"你是我唯一想要的了解", en:"You are the only one I want to understand"},
+      {cn:"那饱满的稻穗 幸福了这个季节", en:"The plump rice ears make this season happy"},
+      {cn:"而你的脸颊像田里熟透的蕃茄", en:"And your cheeks are like ripe tomatoes in the field"},
+      {cn:"你突然对我说 七里香的名字很美", en:"You suddenly told me the name Common Jasmine Orange is beautiful"},
+      {cn:"我此刻却只想亲吻你倔强的嘴", en:"But right now I only want to kiss your stubborn mouth"}
+    ]
+  },
+  {
+    title: "晴天 (Sunny Day)",
+    meta: "作词：周杰伦 | 作曲：周杰伦",
+    lines: [
+      {cn:"故事的小黄花", en:"The little yellow flower of the story"},
+      {cn:"从出生那年就飘着", en:"Has been floating since the year I was born"},
+      {cn:"童年的荡秋千", en:"The swing of childhood"},
+      {cn:"随记忆一直晃到现在", en:"Has been swinging with my memory until now"},
+      {cn:"吹着前奏望着天空", en:"Blowing the prelude, looking at the sky"},
+      {cn:"我想起花瓣试着掉落", en:"I remember the petals trying to fall"},
+      {cn:"为你翘课的那一天", en:"The day I skipped class for you"},
+      {cn:"花落的那一天", en:"The day flowers fell"},
+      {cn:"教室的那一间", en:"That classroom"},
+      {cn:"我怎么看不见", en:"Why can't I see it"},
+      {cn:"消失的下雨天", en:"The disappeared rainy day"},
+      {cn:"我好想再淋一遍", en:"I really want to get soaked in it again"},
+      {cn:"没想到失去的勇气我还留着", en:"I didn't expect I still kept the courage I lost"},
+      {cn:"好想再问一遍", en:"I really want to ask again"},
+      {cn:"你会等待还是离开", en:"Will you wait or leave"},
+      {cn:"刮风这天 我试过握着你手", en:"On this windy day, I tried to hold your hand"},
+      {cn:"但偏偏 雨渐渐 大到我看你不见", en:"But the rain gradually grew so heavy that I couldn't see you"},
+      {cn:"还要多久 我才能在你身边", en:"How much longer before I can be by your side"},
+      {cn:"等到放晴的那天 也许我会比较好一点", en:"When the day clears up, maybe I'll feel a bit better"},
+      {cn:"从前从前 有个人爱你很久", en:"Once upon a time, someone loved you for a long time"},
+      {cn:"但偏偏 风渐渐 把距离吹得好远", en:"But the wind gradually blew the distance so far apart"},
+      {cn:"好不容易 又能再多爱一天", en:"With great difficulty, I got to love you one more day"},
+      {cn:"但故事的最后 你好像还是说了 拜拜", en:"But at the end of the story, you still seemed to say goodbye"}
+    ]
+  },
+  {
+    title: "简单爱 (Simple Love)",
+    meta: "作词：徐若瑄 | 作曲：周杰伦",
+    lines: [
+      {cn:"说不上为什么 我变得很主动", en:"I can't say why, I became very proactive"},
+      {cn:"若爱上一个人 什么都会值得去做", en:"If you fall in love with someone, everything is worth doing"},
+      {cn:"我想大声宣布 对你依依不舍", en:"I want to loudly announce that I can't bear to part with you"},
+      {cn:"连隔壁邻居都猜到我现在的感受", en:"Even the next-door neighbor can guess how I feel now"},
+      {cn:"河边的风 在吹着头发飘动", en:"The wind by the river is blowing, making my hair flutter"},
+      {cn:"牵着你的手 一阵莫名感动", en:"Holding your hand, I feel a strange sense of emotion"},
+      {cn:"我想带你回我的外婆家", en:"I want to take you to my grandmother's house"},
+      {cn:"一起看着日落 一直到我们都睡着", en:"Watching the sunset together until we both fall asleep"},
+      {cn:"我想就这样牵着你的手不放开", en:"I want to just hold your hand and never let go"},
+      {cn:"爱能不能够永远单纯没有悲哀", en:"Can love be forever simple and free from sorrow"},
+      {cn:"我想带你骑单车", en:"I want to take you riding a bicycle"},
+      {cn:"我想和你看棒球", en:"I want to watch baseball with you"},
+      {cn:"想这样没担忧 唱着歌一直走", en:"Want to walk on like this without worry, singing songs"},
+      {cn:"爱可不可以简简单单没有伤害", en:"Can love be simple and free from hurt"},
+      {cn:"你靠着我的肩膀", en:"You lean on my shoulder"},
+      {cn:"你在我胸口睡着", en:"You fall asleep against my chest"},
+      {cn:"像这样的生活 我爱你你爱我", en:"A life like this, I love you and you love me"},
+      {cn:"想简简单单爱", en:"Want to love simply"}
+    ]
+  },
+  {
+    title: "夜曲 (Nocturne)",
+    meta: "作词：方文山 | 作曲：周杰伦",
+    lines: [
+      {cn:"一群嗜血的蚂蚁 被腐肉所吸引", en:"A swarm of bloodthirsty ants attracted by rotten flesh"},
+      {cn:"我面无表情 看孤独的风景", en:"Expressionless, I gaze at the lonely scenery"},
+      {cn:"失去你 爱恨开始分明", en:"Losing you, love and hate begin to distinguish"},
+      {cn:"失去你 还有什么事好关心", en:"Losing you, what else is worth caring about"},
+      {cn:"当鸽子不再象征和平", en:"When doves no longer symbolize peace"},
+      {cn:"我终于被提醒 广场上喂食的是秃鹰", en:"I'm finally reminded that vultures feed in the square"},
+      {cn:"我用漂亮的押韵 形容被掠夺一空的爱情", en:"I use beautiful rhyme to describe love stripped bare"},
+      {cn:"啊 乌云开始遮蔽 夜色不干净", en:"Ah, dark clouds begin to cover, the night is unclean"},
+      {cn:"公园里 葬礼的回音 在漫天飞行", en:"In the park, the funeral echo flies across the sky"},
+      {cn:"送你的白色玫瑰 在纯黑的环境凋零", en:"The white rose I gave you withers in the pure black surroundings"},
+      {cn:"乌鸦在树枝上诡异的很安静", en:"Crows sit eerily quiet on the branches"},
+      {cn:"静静听 我黑色的大衣", en:"Listen quietly, my black overcoat"},
+      {cn:"想温暖你 日渐冰冷的回忆", en:"Wants to warm your memories growing cold each day"},
+      {cn:"走过的 走过的生命", en:"The lives we've walked through"},
+      {cn:"啊 四周弥漫雾气 我在空旷的墓地", en:"Ah, fog surrounds me, I'm in the empty cemetery"},
+      {cn:"老去后还爱你", en:"I'll still love you when I grow old"},
+      {cn:"为你弹奏肖邦的夜曲 纪念我死去的爱情", en:"I play Chopin's Nocturne for you, commemorating my dead love"},
+      {cn:"跟夜风一样的声音 心碎的很好听", en:"A sound like the night wind, heartbreak sounds beautiful"},
+      {cn:"手在键盘敲很轻 我给的思念很小心", en:"My hands tap the keyboard lightly, my longing is careful"},
+      {cn:"你埋葬的地方叫幽冥", en:"The place where you're buried is called the netherworld"},
+      {cn:"为你弹奏肖邦的夜曲 纪念我死去的爱情", en:"I play Chopin's Nocturne for you, commemorating my dead love"},
+      {cn:"而我为你隐姓埋名 在月光下弹琴", en:"And I hide my identity for you, playing piano under the moonlight"},
+      {cn:"对你心跳的感应 还是如此温热亲近", en:"The feeling of your heartbeat is still so warm and close"},
+      {cn:"怀念你那鲜红的唇印", en:"I miss your bright red lipstick mark"},
+      {cn:"那些断翅的蜻蜓 散落在这森林", en:"Those dragonflies with broken wings scattered in this forest"},
+      {cn:"而我的眼睛 没有丝毫同情", en:"And my eyes show not a trace of sympathy"},
+      {cn:"失去你 泪水混浊不清", en:"Losing you, my tears are murky and unclear"},
+      {cn:"失去你 我连笑容都有阴影", en:"Losing you, even my smile has a shadow"},
+      {cn:"风在长满青苔的屋顶 嘲笑我的伤心", en:"The wind on the mossy roof mocks my sadness"},
+      {cn:"像一口没有水的枯井", en:"Like a dry well without water"},
+      {cn:"我用凄美的字型 描绘后悔莫及的那爱情", en:"I use a sorrowful font to depict that love I regret too late"}
+    ]
+  },
+  {
+    title: "东风破 (East Wind Breaks)",
+    meta: "作词：方文山 | 作曲：周杰伦",
+    lines: [
+      {cn:"一盏离愁 孤单伫立在窗口", en:"A lamp of sorrow stands alone by the window"},
+      {cn:"我在门后 假装你人还没走", en:"I'm behind the door, pretending you haven't left"},
+      {cn:"旧地如重游 月圆更寂寞", en:"Revisiting old places, the full moon makes it lonelier"},
+      {cn:"夜半清醒的烛火 不忍苛责我", en:"The candle flame awake at midnight can't bear to scold me"},
+      {cn:"一壶漂泊 浪迹天涯难入喉", en:"A pot of wandering, hard to swallow while roaming the world"},
+      {cn:"你走之后 酒暖回忆思念瘦", en:"After you left, wine warms memories and longing thins"},
+      {cn:"水向东流 时间怎么偷", en:"Water flows east, how can time be stolen"},
+      {cn:"花开就一次成熟 我却错过", en:"Flowers bloom but once to maturity, yet I missed it"},
+      {cn:"谁在用琵琶弹奏 一曲东风破", en:"Who is playing the pipa, a tune of East Wind Breaks"},
+      {cn:"岁月在墙上剥落 看见小时候", en:"Years peel off the wall, revealing childhood"},
+      {cn:"犹记得那年我们都还很年幼", en:"I still remember that year we were both very young"},
+      {cn:"而如今琴声幽幽 我的等候 你没听过", en:"Now the piano sound is faint, my waiting you've never heard"},
+      {cn:"谁在用琵琶弹奏 一曲东风破", en:"Who is playing the pipa, a tune of East Wind Breaks"},
+      {cn:"枫叶将故事染色 结局我看透", en:"Maple leaves color the story, I see through the ending"},
+      {cn:"篱笆外的古道我牵着你走过", en:"I held your hand walking the old road beyond the fence"},
+      {cn:"荒烟蔓草的年头 就连分手都很沉默", en:"In years of desolate smoke and overgrown grass, even our breakup was silent"}
+    ]
+  },
+  {
+    title: "菊花台 (Chrysanthemum Terrace)",
+    meta: "作词：方文山 | 作曲：周杰伦",
+    lines: [
+      {cn:"你的泪光 柔弱中带伤", en:"Your tearful eyes, fragile yet wounded"},
+      {cn:"惨白的月弯弯 勾住过往", en:"The pale crescent moon hooks onto the past"},
+      {cn:"夜太漫长 凝结成了霜", en:"The night is too long, condensing into frost"},
+      {cn:"是谁在阁楼上 冰冷地绝望", en:"Who is in the attic, coldly despairing"},
+      {cn:"雨轻轻弹 朱红色的窗", en:"Rain taps softly on the vermilion window"},
+      {cn:"我一生在纸上 被风吹乱", en:"My whole life on paper, scattered by the wind"},
+      {cn:"梦在远方 化成一缕香", en:"Dreams in the distance, turning into a wisp of fragrance"},
+      {cn:"随风飘散 你的模样", en:"Drifting with the wind, your appearance"},
+      {cn:"菊花残 满地伤", en:"Chrysanthemums withered, the ground full of hurt"},
+      {cn:"你的笑容已泛黄", en:"Your smile has already yellowed"},
+      {cn:"花落人断肠 我心事静静躺", en:"Flowers fall, heart breaks, my worries lie quietly"},
+      {cn:"北风乱 夜未央", en:"North wind chaotic, the night not yet ended"},
+      {cn:"你的影子剪不断", en:"Your shadow cannot be cut away"},
+      {cn:"徒留我孤单在湖面 成双", en:"Leaving me alone on the lake, paired with my reflection"},
+      {cn:"花已向晚 飘落了灿烂", en:"Flowers facing evening, their brilliance falling"},
+      {cn:"凋谢的世道上 命运不堪", en:"In this withering world, fate is unbearable"},
+      {cn:"愁莫渡江 秋心拆两半", en:"Sorrow dares not cross the river, autumn's heart split in two"},
+      {cn:"怕你上不了岸 一辈子摇晃", en:"Afraid you can't reach shore, swaying for a lifetime"},
+      {cn:"谁的江山 马蹄声狂乱", en:"Whose kingdom, the sound of hooves frantic"},
+      {cn:"我一身的戎装 呼啸沧桑", en:"My armor, whistling with the vicissitudes of life"},
+      {cn:"天微微亮 你轻声地叹", en:"Dawn breaking, you sigh softly"},
+      {cn:"一夜惆怅 如此委婉", en:"A night of melancholy, so tactful"}
+    ]
+  },
+  {
+    title: "龙卷风 (Tornado)",
+    meta: "作词：徐若瑄 | 作曲：周杰伦",
+    lines: [
+      {cn:"爱像一阵风 吹完它就走", en:"Love is like a gust of wind, it blows and then leaves"},
+      {cn:"这样的节奏 谁都无可奈何", en:"Such a rhythm, no one can do anything about it"},
+      {cn:"没有你以后 我灵魂失控", en:"After losing you, my soul loses control"},
+      {cn:"黑云在降落 我被它拖着走", en:"Dark clouds descending, I'm dragged along by them"},
+      {cn:"静静悄悄默默离开", en:"Quietly, silently, secretly leaving"},
+      {cn:"陷入了危险边缘 Baby", en:"Falling into the edge of danger, Baby"},
+      {cn:"我的世界已狂风暴雨", en:"My world is already a raging storm"},
+      {cn:"爱情来的太快 就像龙卷风", en:"Love comes too fast, just like a tornado"},
+      {cn:"离不开暴风圈 来不及逃", en:"Can't leave the storm circle, no time to escape"},
+      {cn:"我不能再想 我不能再想", en:"I can't think anymore, I can't think anymore"},
+      {cn:"我不 我不 我不能", en:"I won't, I won't, I can't"},
+      {cn:"爱情走的太快 就像龙卷风", en:"Love leaves too fast, just like a tornado"},
+      {cn:"不能承受 我已无处可躲", en:"Can't bear it, I have nowhere to hide"},
+      {cn:"我不要再想 我不要再想", en:"I don't want to think anymore, I don't want to think anymore"},
+      {cn:"我不 我不 我不要再想你", en:"I won't, I won't, I won't think of you anymore"},
+      {cn:"不知不觉 你已经离开我", en:"Before I knew it, you had already left me"},
+      {cn:"不知不觉 我跟了这节奏", en:"Before I knew it, I followed this rhythm"},
+      {cn:"后知后觉 又过了一个秋", en:"Realizing too late, another autumn has passed"},
+      {cn:"后知后觉 我该好好生活", en:"Realizing too late, I should live well"}
+    ]
+  },
+  {
+    title: "告白气球 (Love Confession)",
+    meta: "作词：方文山 | 作曲：周杰伦",
+    lines: [
+      {cn:"塞纳河畔 左岸的咖啡", en:"By the Seine, coffee on the left bank"},
+      {cn:"我手一杯 品尝你的美", en:"A cup in my hand, savoring your beauty"},
+      {cn:"留下唇印的嘴", en:"Lips that left a lipstick mark"},
+      {cn:"花店玫瑰 名字写错谁", en:"Roses from the florist, whose name was written wrong"},
+      {cn:"告白气球 风吹到对街", en:"Confession balloons blown across the street"},
+      {cn:"微笑在天上飞", en:"Smiles flying in the sky"},
+      {cn:"你说你有点难追 想让我知难而退", en:"You said you're hard to catch, wanting me to give up"},
+      {cn:"礼物不需挑最贵 只要香榭的落叶", en:"Gifts don't need to be the most expensive, just Champs-Élysées fallen leaves"},
+      {cn:"营造浪漫的约会 不害怕搞砸一切", en:"Creating a romantic date, not afraid of ruining everything"},
+      {cn:"拥有你就拥有 全世界", en:"Having you means having the whole world"},
+      {cn:"亲爱的 爱上你", en:"Darling, falling in love with you"},
+      {cn:"从那天起 甜蜜的很轻易", en:"From that day, sweetness came so easily"},
+      {cn:"亲爱的 别任性", en:"Darling, don't be willful"},
+      {cn:"你的眼睛 在说我愿意", en:"Your eyes are saying I do"},
+      {cn:"亲爱的 爱上你", en:"Darling, falling in love with you"},
+      {cn:"恋爱日记 飘香水的回忆", en:"Love diary, memories drifting with perfume"},
+      {cn:"一整瓶 的梦境 全都有你 搅拌在一起", en:"A whole bottle of dreams, all with you, stirred together"},
+      {cn:"亲爱的 别任性", en:"Darling, don't be willful"},
+      {cn:"你的眼睛 在说我愿意", en:"Your eyes are saying I do"}
+    ]
+  },
+  {
+    title: "安静 (Silence)",
+    meta: "作词：周杰伦 | 作曲：周杰伦",
+    lines: [
+      {cn:"只剩下钢琴陪我谈了一天", en:"Only the piano remains, accompanying me all day"},
+      {cn:"睡着的大提琴 安静的旧旧的", en:"The sleeping cello, quiet and old"},
+      {cn:"我想你已表现的 非常明白", en:"I think you've already made it very clear"},
+      {cn:"我懂我也知道 你没有舍不得", en:"I understand and I know, you're not reluctant to leave"},
+      {cn:"你说你也会难过我不相信", en:"You said you'd be sad too, but I don't believe it"},
+      {cn:"牵着你陪着我 也只是曾经", en:"Holding you, accompanying me, was only in the past"},
+      {cn:"希望他是真的比我还要爱你", en:"I hope he really loves you more than I do"},
+      {cn:"我才会逼自己离开", en:"Only then will I force myself to leave"},
+      {cn:"你要我说多难堪 我根本不想分开", en:"You want me to say how awkward it is, I don't want to break up at all"},
+      {cn:"为什么还要我用微笑来带过", en:"Why do you want me to cover it up with a smile"},
+      {cn:"我没有这种天份 包容你也接受他", en:"I don't have the talent to tolerate you and accept him"},
+      {cn:"不用担心的太多 我会一直好好过", en:"Don't worry too much, I'll always live well"},
+      {cn:"你已经远远离开 我也会慢慢走开", en:"You've already left far away, I'll slowly walk away too"},
+      {cn:"为什么我连分开都迁就着你", en:"Why do I even accommodate you when breaking up"},
+      {cn:"我真的没有天份 安静的没这么快", en:"I really don't have the talent to be quiet this fast"},
+      {cn:"我会学着放弃你 是因为我太爱你", en:"I'll learn to let you go, because I love you too much"}
+    ]
+  },
+  {
+    title: "发如雪 (Hair Like Snow)",
+    meta: "作词：方文山 | 作曲：周杰伦",
+    lines: [
+      {cn:"狼牙月 伊人憔悴", en:"Crescent moon, my beloved is wan and sallow"},
+      {cn:"我举杯 饮尽了风雪", en:"I raise a cup and drink in the wind and snow"},
+      {cn:"是谁打翻前世柜 惹尘埃是非", en:"Who overturned the box of past lives, stirring up dust and strife"},
+      {cn:"缘字诀 几番轮回", en:"The formula of fate, countless reincarnations"},
+      {cn:"你锁眉 哭红颜唤不回", en:"You frown, crying for beauty that can't be called back"},
+      {cn:"纵然青史已经成灰 我爱不灭", en:"Even if history has turned to ashes, my love won't die"},
+      {cn:"繁华如三千东流水", en:"Grandeur is like three thousand flowing waters eastward"},
+      {cn:"我只取一瓢爱了解", en:"I only take one ladle of love to understand"},
+      {cn:"只恋你化身的蝶", en:"Only longing for the butterfly you've become"},
+      {cn:"你发如雪 凄美了离别", en:"Your hair is like snow, making parting poignantly beautiful"},
+      {cn:"我焚香感动了谁", en:"Who have I moved with my burning incense"},
+      {cn:"邀明月 让回忆皎洁", en:"Inviting the bright moon, making memories pure and clear"},
+      {cn:"爱在月光下完美", en:"Love becomes perfect under the moonlight"},
+      {cn:"你发如雪 纷飞了眼泪", en:"Your hair is like snow, tears flying about"},
+      {cn:"我等待苍老了谁", en:"Who has grown old while I wait"},
+      {cn:"红尘醉 微醺的岁月", en:"Drunk in the mortal world, the tipsy years"},
+      {cn:"我用无悔 刻永世爱你的碑", en:"I use no regret to carve a tablet of eternal love for you"},
+      {cn:"铜镜映无邪 扎马尾", en:"The bronze mirror reflects innocence, hair tied in a ponytail"},
+      {cn:"你若撒野 今生我把酒奉陪", en:"If you act wild, I'll keep you company with wine in this life"}
+    ]
+  }
+];
+
+// ============ 重点词汇库 ============
+const vocabulary = {
+  "稻香 (Rice Field)": [
+    {word:"complaints", phon:"/kəmˈpleɪnts/", def:"n. 抱怨；投诉"},
+    {word:"degenerate", phon:"/dɪˈdʒenəreɪt/", def:"v. 堕落；退化"},
+    {word:"fragrance", phon:"/ˈfreɪɡrəns/", def:"n. 香味；芬芳"},
+    {word:"content", phon:"/kənˈtent/", def:"adj. 满足的；满意的"},
+    {word:"treasure", phon:"/ˈtreʒə(r)/", def:"v. 珍惜；珍藏"},
+    {word:"castle", phon:"/ˈkɑːsl/", def:"n. 城堡"},
+    {word:"innocent", phon:"/ˈɪnəsnt/", def:"adj. 天真的；无辜的"},
+    {word:"courage", phon:"/ˈkʌrɪdʒ/", def:"n. 勇气；胆量"}
+  ],
+  "青花瓷 (Blue and White Porcelain)": [
+    {word:"porcelain", phon:"/ˈpɔːsəlɪn/", def:"n. 瓷器；瓷"},
+    {word:"azure", phon:"/ˈæʒə(r)/", def:"adj. 天蓝色的；蔚蓝的"},
+    {word:"depict", phon:"/dɪˈpɪkt/", def:"v. 描绘；描述"},
+    {word:"elegant", phon:"/ˈelɪɡənt/", def:"adj. 优雅的；精美的"},
+    {word:"incense", phon:"/ˈɪnsens/", def:"n. 香；焚香"},
+    {word:"misty", phon:"/ˈmɪsti/", def:"adj. 有雾的；模糊的"},
+    {word:"faint", phon:"/feɪnt/", def:"adj. 微弱的；模糊的"}
+  ],
+  "七里香 (Common Jasmine Orange)": [
+    {word:"jasmine", phon:"/ˈdʒæzmɪn/", def:"n. 茉莉"},
+    {word:"feast", phon:"/fiːst/", def:"n. 盛宴；宴会"},
+    {word:"butterfly", phon:"/ˈbʌtəflaɪ/", def:"n. 蝴蝶"},
+    {word:"summer", phon:"/ˈsʌmə(r)/", def:"n. 夏天"},
+    {word:"breeze", phon:"/briːz/", def:"n. 微风；和风"},
+    {word:"season", phon:"/ˈsiːzn/", def:"n. 季节"},
+    {word:"rain", phon:"/reɪn/", def:"n. 雨；雨水"}
+  ],
+  "晴天 (Sunny Day)": [
+    {word:"sunny", phon:"/ˈsʌni/", def:"adj. 晴朗的；阳光充足的"},
+    {word:"childhood", phon:"/ˈtʃaɪldhʊd/", def:"n. 童年；幼年时代"},
+    {word:"classroom", phon:"/ˈklɑːsruːm/", def:"n. 教室"},
+    {word:"confess", phon:"/kənˈfes/", def:"v. 承认；坦白"},
+    {word:"promise", phon:"/ˈprɒmɪs/", def:"n./v. 承诺；答应"},
+    {word:"rainy", phon:"/ˈreɪni/", def:"adj. 下雨的；多雨的"},
+    {word:"silent", phon:"/ˈsaɪlənt/", def:"adj. 沉默的；寂静的"}
+  ],
+  "简单爱 (Simple Love)": [
+    {word:"simple", phon:"/ˈsɪmpl/", def:"adj. 简单的；单纯的"},
+    {word:"proactive", phon:"/prəʊˈæktɪv/", def:"adj. 主动的；积极的"},
+    {word:"bear", phon:"/beə(r)/", def:"v. 忍受；承受"},
+    {word:"emotion", phon:"/ɪˈməʊʃn/", def:"n. 情感；情绪"},
+    {word:"sunset", phon:"/ˈsʌnset/", def:"n. 日落；傍晚"},
+    {word:"bicycle", phon:"/ˈbaɪsɪkl/", def:"n. 自行车"},
+    {word:"shoulder", phon:"/ˈʃəʊldə(r)/", def:"n. 肩膀"}
+  ],
+  "夜曲 (Nocturne)": [
+    {word:"nocturne", phon:"/ˈnɒktɜːn/", def:"n. 夜曲；夜景画"},
+    {word:"commemorate", phon:"/kəˈmeməreɪt/", def:"v. 纪念；庆祝"},
+    {word:"bloodthirsty", phon:"/ˈblʌdθɜːsti/", def:"adj. 嗜血的；残忍的"},
+    {word:"expressionless", phon:"/ɪkˈspreʃənləs/", def:"adj. 无表情的"},
+    {word:"vulture", phon:"/ˈvʌltʃə(r)/", def:"n. 秃鹰；贪婪的人"},
+    {word:"rhyme", phon:"/raɪm/", def:"n. 押韵；韵脚"},
+    {word:"netherworld", phon:"/ˈneðəwɜːld/", def:"n. 阴间；幽冥"},
+    {word:"identity", phon:"/aɪˈdentəti/", def:"n. 身份；同一性"}
+  ],
+  "东风破 (East Wind Breaks)": [
+    {word:"sorrow", phon:"/ˈsɒrəʊ/", def:"n. 悲伤；悲痛"},
+    {word:"pretend", phon:"/prɪˈtend/", def:"v. 假装；佯装"},
+    {word:"revisit", phon:"/ˌriːˈvɪzɪt/", def:"v. 重游；再访问"},
+    {word:"wander", phon:"/ˈwɒndə(r)/", def:"v. 漫游；流浪"},
+    {word:"mature", phon:"/məˈtʃʊə(r)/", def:"adj. 成熟的"},
+    {word:"pipa", phon:"/ˈpiːpə/", def:"n. 琵琶（中国乐器）"},
+    {word:"peel", phon:"/piːl/", def:"v. 剥落；脱皮"},
+    {word:"maple", phon:"/ˈmeɪpl/", def:"n. 枫树；枫叶"}
+  ],
+  "菊花台 (Chrysanthemum Terrace)": [
+    {word:"chrysanthemum", phon:"/krɪˈsænθəməm/", def:"n. 菊花"},
+    {word:"fragile", phon:"/ˈfrædʒaɪl/", def:"adj. 脆弱的；易碎的"},
+    {word:"crescent", phon:"/ˈkresnt/", def:"n. 新月；月牙"},
+    {word:"condense", phon:"/kənˈdens/", def:"v. 凝结；浓缩"},
+    {word:"frost", phon:"/frɒst/", def:"n. 霜；霜冻"},
+    {word:"despair", phon:"/dɪˈspeə(r)/", def:"n./v. 绝望"},
+    {word:"vermilion", phon:"/vəˈmɪliən/", def:"adj. 朱红色的"},
+    {word:"wither", phon:"/ˈwɪðə(r)/", def:"v. 枯萎；凋谢"},
+    {word:"armor", phon:"/ˈɑːmə(r)/", def:"n. 盔甲；装甲"}
+  ],
+  "龙卷风 (Tornado)": [
+    {word:"tornado", phon:"/tɔːˈneɪdəʊ/", def:"n. 龙卷风"},
+    {word:"gust", phon:"/ɡʌst/", def:"n. 阵风；一阵强风"},
+    {word:"rhythm", phon:"/ˈrɪðəm/", def:"n. 节奏；韵律"},
+    {word:"helpless", phon:"/ˈhelpləs/", def:"adj. 无助的；无可奈何的"},
+    {word:"soul", phon:"/səʊl/", def:"n. 灵魂；心灵"},
+    {word:"descend", phon:"/dɪˈsend/", def:"v. 下降；降临"},
+    {word:"storm", phon:"/stɔːm/", def:"n. 暴风雨；风暴"},
+    {word:"escape", phon:"/ɪˈskeɪp/", def:"v. 逃跑；逃脱"},
+    {word:"unconsciously", phon:"/ʌnˈkɒnʃəsli/", def:"adv. 不知不觉地"}
+  ],
+  "告白气球 (Love Confession)": [
+    {word:"confession", phon:"/kənˈfeʃn/", def:"n. 表白；忏悔"},
+    {word:"savor", phon:"/ˈseɪvə(r)/", def:"v. 品尝；欣赏"},
+    {word:"florist", phon:"/ˈflɒrɪst/", def:"n. 花店；花商"},
+    {word:"balloon", phon:"/bəˈluːn/", def:"n. 气球"},
+    {word:"romantic", phon:"/rəʊˈmæntɪk/", def:"adj. 浪漫的"},
+    {word:"date", phon:"/deɪt/", def:"n. 约会；日期"},
+    {word:"sweetness", phon:"/ˈswiːtnəs/", def:"n. 甜蜜；甜美"},
+    {word:"willful", phon:"/ˈwɪlfl/", def:"adj. 任性的；故意的"},
+    {word:"diary", phon:"/ˈdaɪəri/", def:"n. 日记；日记本"}
+  ],
+  "安静 (Silence)": [
+    {word:"silence", phon:"/ˈsaɪləns/", def:"n. 安静；沉默"},
+    {word:"piano", phon:"/piˈænəʊ/", def:"n. 钢琴"},
+    {word:"cello", phon:"/ˈtʃeləʊ/", def:"n. 大提琴"},
+    {word:"reluctant", phon:"/rɪˈlʌktənt/", def:"adj. 不情愿的；勉强的"},
+    {word:"accompany", phon:"/əˈkʌmpəni/", def:"v. 陪伴；伴随"},
+    {word:"awkward", phon:"/ˈɔːkwəd/", def:"adj. 尴尬的；难堪的"},
+    {word:"tolerate", phon:"/ˈtɒləreɪt/", def:"v. 容忍；忍受"},
+    {word:"talent", phon:"/ˈtælənt/", def:"n. 天赋；才能"},
+    {word:"accommodate", phon:"/əˈkɒmədeɪt/", def:"v. 迁就；容纳"}
+  ],
+  "发如雪 (Hair Like Snow)": [
+    {word:"crescent", phon:"/ˈkresnt/", def:"n. 新月；月牙"},
+    {word:"beloved", phon:"/bɪˈlʌvd/", def:"n. 心爱的人；adj. 心爱的"},
+    {word:"wan", phon:"/wɒn/", def:"adj. 苍白的；憔悴的"},
+    {word:"sallow", phon:"/ˈsæləʊ/", def:"adj. 灰黄色的；气色不好的"},
+    {word:"incarnation", phon:"/ˌɪnkɑːˈneɪʃn/", def:"n. 化身；转世"},
+    {word:"reincarnation", phon:"/ˌriːɪnkɑːˈneɪʃn/", def:"n. 轮回；再生"},
+    {word:"annals", phon:"/ˈænlz/", def:"n. 编年史；历史记载"},
+    {word:"grandeur", phon:"/ˈɡrændʒə(r)/", def:"n. 壮丽；宏伟"},
+    {word:"ladle", phon:"/ˈleɪdl/", def:"n. 长柄勺；v. 舀取"},
+    {word:"poignant", phon:"/ˈpɔɪnjənt/", def:"adj. 深刻的；令人感伤的"}
+  ]
+};
+
+// ============ 朗读器逻辑 ============
+const synth = window.speechSynthesis;
+const $ = id => document.getElementById(id);
+
+const songSelect = $('songSelect');
+const lyricsArea = $('lyricsArea');
+const playBtn = $('playBtn');
+const prevBtn = $('prevBtn');
+const nextBtn = $('nextBtn');
+const autoBtn = $('autoBtn');
+const loopBtn = $('loopBtn');
+const stopBtn = $('stopBtn');
+const rateInput = $('rate');
+const rateVal = $('rateVal');
+const pitchInput = $('pitch');
+const pitchVal = $('pitchVal');
+const volumeInput = $('volume');
+const volumeVal = $('volumeVal');
+const pauseInput = $('pause');
+const pauseVal = $('pauseVal');
+const langSelect = $('langSelect');
+const autoPlayChk = $('autoPlay');
+const loopLineChk = $('loopLine');
+const loopAllChk = $('loopAll');
+const enVoiceSel = $('enVoice');
+const zhVoiceSel = $('zhVoice');
+const progress = $('progress');
+const settingsToggle = $('settingsToggle');
+const settingsPanel = $('settingsPanel');
+
+// 设置面板折叠
+settingsToggle.addEventListener('click', () => {
+  settingsPanel.classList.toggle('open');
+  settingsToggle.classList.toggle('open');
+});
+
+// 显示模式切换（中英对照 / 仅英文 / 仅中文）
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const mode = btn.dataset.mode;
+    document.body.classList.remove('hide-cn', 'hide-en');
+    if (mode === 'en') document.body.classList.add('hide-cn');
+    else if (mode === 'cn') document.body.classList.add('hide-en');
+  });
+});
+
+let currentSong = null;
+let currentLineIdx = 0;
+let isAutoPlaying = false;
+let autoPlayTimer = null;
+let voices = [];
+let keepAliveTimer = null;
+
+// 填充歌曲列表
+songs.forEach((s, i) => {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = s.title;
+  songSelect.appendChild(opt);
+});
+
+// 加载语音列表
+function loadVoices() {
+  voices = synth.getVoices();
+  const enVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
+  const zhVoices = voices.filter(v => v.lang.toLowerCase().startsWith('zh'));
+
+  enVoiceSel.innerHTML = '<option value="">默认英文语音</option>';
+  enVoices.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = v.name;
+    opt.textContent = `${v.name} (${v.lang})`;
+    enVoiceSel.appendChild(opt);
+  });
+
+  zhVoiceSel.innerHTML = '<option value="">默认中文语音</option>';
+  zhVoices.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = v.name;
+    opt.textContent = `${v.name} (${v.lang})`;
+    zhVoiceSel.appendChild(opt);
+  });
+}
+
+loadVoices();
+if (synth.onvoiceschanged !== undefined) {
+  synth.onvoiceschanged = loadVoices;
+}
+
+// 滑块实时更新
+rateInput.addEventListener('input', () => rateVal.textContent = parseFloat(rateInput.value).toFixed(2));
+pitchInput.addEventListener('input', () => pitchVal.textContent = parseFloat(pitchInput.value).toFixed(2));
+volumeInput.addEventListener('input', () => volumeVal.textContent = Math.round(volumeInput.value * 100) + '%');
+pauseInput.addEventListener('input', () => pauseVal.textContent = pauseInput.value);
+
+// 预设模式
+const presets = {
+  calm:   { rate: 0.75, pitch: 0.9,  volume: 1.0, pause: 800 },
+  normal: { rate: 0.85, pitch: 1.0,  volume: 1.0, pause: 500 },
+  bright: { rate: 0.90, pitch: 1.15, volume: 1.0, pause: 400 },
+  happy:  { rate: 1.05, pitch: 1.2,  volume: 1.0, pause: 300 }
+};
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const p = presets[btn.dataset.preset];
+    rateInput.value = p.rate; rateVal.textContent = p.rate.toFixed(2);
+    pitchInput.value = p.pitch; pitchVal.textContent = p.pitch.toFixed(2);
+    volumeInput.value = p.volume; volumeVal.textContent = Math.round(p.volume * 100) + '%';
+    pauseInput.value = p.pause; pauseVal.textContent = p.pause;
+  });
+});
+
+function renderLyrics(idx) {
+  const song = songs[idx];
+  currentSong = song;
+  currentLineIdx = 0;
+  stopAll();
+
+  // 获取当前歌曲的词汇表
+  const vocabs = vocabulary[song.title] || [];
+  const vocabWords = new Set(vocabs.map(v => v.word.toLowerCase()));
+
+  // 把英文句子拆成单词，重点词汇高亮
+  function wrapEnWords(enText) {
+    return enText.split(/(\s+|[,.!?;:'"])/).map(token => {
+      if (/^\s+$/.test(token) || /^[,.!?;:'"]$/.test(token)) return token;
+      const clean = token.replace(/[^a-zA-Z]/g, '').toLowerCase();
+      if (vocabWords.has(clean)) {
+        return `<span class="word vocab" data-word="${clean}">${token}</span>`;
+      }
+      return `<span class="word">${token}</span>`;
+    }).join('');
+  }
+
+  let html = `<h2 class="song-title">${song.title}</h2><p class="song-meta">${song.meta}</p>` +
+    song.lines.map((l, i) =>
+      `<div class="line" data-idx="${i}"><div class="cn">${l.cn}</div><div class="en">${wrapEnWords(l.en)}</div></div>`
+    ).join('');
+
+  // 添加词汇表（默认折叠）
+  if (vocabs.length > 0) {
+    html += `<div class="vocab-section collapsed"><h3>📖 核心词汇 <span class="vocab-count">(${vocabs.length})</span> <span class="vocab-toggle">▼</span></h3><div class="vocab-list">` +
+      vocabs.map(v =>
+        `<div class="vocab-item" data-word="${v.word.toLowerCase()}">
+          <span class="vi-word">${v.word}</span>
+          <span class="vi-phon">${v.phon}</span>
+          <span class="vi-def">${v.def}</span>
+        </div>`
+      ).join('') + '</div></div>';
+  }
+
+  lyricsArea.innerHTML = html;
+
+  // 绑定整行点击朗读
+  document.querySelectorAll('.line').forEach(el => {
+    el.addEventListener('click', (e) => {
+      // 如果点击的是单词，不触发行朗读
+      if (e.target.classList.contains('word')) return;
+      speakLine(parseInt(el.dataset.idx));
+    });
+  });
+
+  // 绑定单词点击朗读 + 词汇显示释义
+  document.querySelectorAll('.word').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const word = el.dataset.word || el.textContent;
+      speakWord(word);
+      if (el.classList.contains('vocab')) {
+        const rect = el.getBoundingClientRect();
+        showVocabPopup(word, rect.left, rect.bottom);
+      }
+    });
+  });
+
+  // 点击其他地方关闭释义弹窗
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.vocab') && !e.target.closest('.vocab-popup')) {
+      hideVocabPopup();
+    }
+  });
+
+  // 绑定词汇表点击朗读
+  document.querySelectorAll('.vocab-item').forEach(el => {
+    el.addEventListener('click', () => speakWord(el.dataset.word));
+  });
+
+  // 词汇表折叠/展开
+  const vocabSection = document.querySelector('.vocab-section');
+  if (vocabSection) {
+    vocabSection.querySelector('h3').addEventListener('click', () => {
+      vocabSection.classList.toggle('collapsed');
+    });
+  }
+
+  updateProgress();
+}
+
+function highlightLine(idx) {
+  document.querySelectorAll('.line').forEach(el => el.classList.remove('active'));
+  const el = document.querySelector(`.line[data-idx="${idx}"]`);
+  if (el) {
+    el.classList.add('active');
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function updateProgress() {
+  if (!currentSong) return;
+  progress.textContent = `进度：${currentLineIdx + 1} / ${currentSong.lines.length} 句`;
+}
+
+// 获取指定语言的语音
+function getVoice(lang) {
+  const name = lang === 'zh' ? zhVoiceSel.value : enVoiceSel.value;
+  if (name) {
+    return voices.find(v => v.name === name);
+  }
+  // 默认选择第一个匹配语言的语音
+  const prefix = lang === 'zh' ? 'zh' : 'en';
+  return voices.find(v => v.lang.toLowerCase().startsWith(prefix));
+}
+
+// Chrome 15秒 bug 保活：定期 pause/resume
+function startKeepAlive() {
+  stopKeepAlive();
+  keepAliveTimer = setInterval(() => {
+    if (synth.speaking && !synth.paused) {
+      synth.pause();
+      synth.resume();
+    }
+  }, 10000);
+}
+function stopKeepAlive() {
+  if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null; }
+}
+
+// 逐词朗读
+function speakWord(word) {
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  const v = getVoice('en');
+  if (v) u.voice = v;
+  u.rate = parseFloat(rateInput.value) * 0.9;
+  u.pitch = parseFloat(pitchInput.value);
+  u.volume = parseFloat(volumeInput.value);
+  synth.speak(u);
+}
+
+// 词汇释义弹窗
+let vocabPopup = null;
+function showVocabPopup(word, x, y) {
+  hideVocabPopup();
+  const songVocabs = vocabulary[currentSong?.title] || [];
+  const v = songVocabs.find(vv => vv.word.toLowerCase() === word.toLowerCase());
+  if (!v) return;
+  vocabPopup = document.createElement('div');
+  vocabPopup.className = 'vocab-popup';
+  vocabPopup.innerHTML = `<div class="vp-word">${v.word}</div><div class="vp-phon">${v.phon}</div><div class="vp-def">${v.def}</div>`;
+  document.body.appendChild(vocabPopup);
+  const pw = vocabPopup.offsetWidth, ph = vocabPopup.offsetHeight;
+  let left = x + 10, top = y + 10;
+  if (left + pw > window.innerWidth) left = x - pw - 10;
+  if (top + ph > window.innerHeight) top = y - ph - 10;
+  vocabPopup.style.left = left + 'px';
+  vocabPopup.style.top = top + 'px';
+}
+function hideVocabPopup() {
+  if (vocabPopup) { vocabPopup.remove(); vocabPopup = null; }
+}
+
+function speakLine(idx) {
+  if (!currentSong || idx < 0 || idx >= currentSong.lines.length) return;
+  synth.cancel();
+  if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
+  currentLineIdx = idx;
+  highlightLine(idx);
+  updateProgress();
+  playBtn.textContent = '⏸ 暂停';
+
+  const line = currentSong.lines[idx];
+  const lang = langSelect.value;
+  const rate = parseFloat(rateInput.value);
+  const pitch = parseFloat(pitchInput.value);
+  const volume = parseFloat(volumeInput.value);
+
+  const utterances = [];
+  if (lang === 'zh' || lang === 'both') {
+    const u = new SpeechSynthesisUtterance(line.cn);
+    u.lang = 'zh-CN';
+    u.rate = rate;
+    u.pitch = pitch;
+    u.volume = volume;
+    const v = getVoice('zh');
+    if (v) u.voice = v;
+    utterances.push(u);
+  }
+  if (lang === 'en' || lang === 'both') {
+    const u = new SpeechSynthesisUtterance(line.en);
+    u.lang = 'en-US';
+    u.rate = rate;
+    u.pitch = pitch;
+    u.volume = volume;
+    const v = getVoice('en');
+    if (v) u.voice = v;
+    utterances.push(u);
+  }
+
+  let i = 0;
+  function speakNext() {
+    if (i >= utterances.length) {
+      // 当前句朗读完成
+      if (loopLineChk.checked) {
+        // 单句循环
+        autoPlayTimer = setTimeout(() => speakLine(idx), 300);
+      } else if (isAutoPlaying && autoPlayChk.checked) {
+        if (idx < currentSong.lines.length - 1) {
+          // 还有下一句，继续播放
+          autoPlayTimer = setTimeout(() => speakLine(idx + 1), parseInt(pauseInput.value));
+        } else if (loopAllChk.checked) {
+          // 全文循环，回到第一句
+          autoPlayTimer = setTimeout(() => speakLine(0), parseInt(pauseInput.value));
+        } else {
+          // 已到最后一句，全文朗读结束
+          isAutoPlaying = false;
+          autoBtn.textContent = '🔄 全文朗读';
+          playBtn.textContent = '▶ 朗读';
+          stopKeepAlive();
+        }
+      } else {
+        playBtn.textContent = '▶ 朗读';
+        stopKeepAlive();
+      }
+      return;
+    }
+    const u = utterances[i++];
+    u.onend = speakNext;
+    synth.speak(u);
+  }
+  startKeepAlive();
+  speakNext();
+}
+
+function stopAll() {
+  synth.cancel();
+  isAutoPlaying = false;
+  if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
+  playBtn.textContent = '▶ 朗读';
+  autoBtn.textContent = '🔄 全文朗读';
+  stopKeepAlive();
+}
+
+songSelect.addEventListener('change', e => {
+  if (e.target.value === '') {
+    lyricsArea.innerHTML = '<p style="text-align:center;color:#999;padding:60px 0;">👆 请先选择一首歌曲</p>';
+    currentSong = null;
+    progress.textContent = '';
+    return;
+  }
+  renderLyrics(parseInt(e.target.value));
+});
+
+playBtn.addEventListener('click', () => {
+  if (synth.speaking && !synth.paused) {
+    synth.pause();
+    playBtn.textContent = '▶ 继续';
+  } else if (synth.paused) {
+    synth.resume();
+    playBtn.textContent = '⏸ 暂停';
+  } else {
+    speakLine(currentLineIdx);
+  }
+});
+
+prevBtn.addEventListener('click', () => {
+  if (!currentSong) return;
+  if (currentLineIdx > 0) speakLine(currentLineIdx - 1);
+});
+
+nextBtn.addEventListener('click', () => {
+  if (!currentSong) return;
+  if (currentLineIdx < currentSong.lines.length - 1) speakLine(currentLineIdx + 1);
+});
+
+autoBtn.addEventListener('click', () => {
+  if (!currentSong) return;
+  isAutoPlaying = !isAutoPlaying;
+  if (isAutoPlaying) {
+    autoBtn.textContent = '⏸ 暂停全文';
+    speakLine(currentLineIdx);
+  } else {
+    stopAll();
+  }
+});
+
+loopBtn.addEventListener('click', () => {
+  loopLineChk.checked = !loopLineChk.checked;
+  if (loopLineChk.checked) {
+    loopBtn.textContent = '⏹ 停止循环';
+    if (!synth.speaking) speakLine(currentLineIdx);
+  } else {
+    loopBtn.textContent = '🔁 单句循环';
+  }
+});
+
+stopBtn.addEventListener('click', stopAll);
+
+// 检测浏览器支持
+if (!('speechSynthesis' in window)) {
+  lyricsArea.innerHTML = '<p style="text-align:center;color:#dc3545;padding:60px 0;">⚠️ 您的浏览器不支持语音合成，请使用 Chrome、Edge 或 Safari 浏览器</p>';
+}
+</script>
+</body>
+</html>
