@@ -1272,6 +1272,11 @@ function checkLock() {
     document.body.classList.add('locked');
     isLocked = true;
     lyricsArea.scrollTop = 1;
+    // 强制固定显示模式按钮（内联样式优先级最高，兼容手机端）
+    const dm = document.querySelector('.display-modes');
+    if (dm) {
+      dm.style.cssText = 'position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:800px;z-index:60;background:#fff;padding:10px 14px;margin-top:0;border-bottom:1px solid #eee;box-shadow:0 2px 4px rgba(0,0,0,0.05);';
+    }
   }
 }
 
@@ -1294,6 +1299,9 @@ function doUnlock() {
   document.body.classList.remove('locked');
   isLocked = false;
   unlockCooldown = Date.now() + 500; // 500ms 冷却，防止立即重新锁定
+  // 清除显示模式按钮的固定样式
+  const dm = document.querySelector('.display-modes');
+  if (dm) dm.style.cssText = '';
   window.scrollTo(0, (window._savedScrollY || 0) - 10);
 }
 function checkUnlockLoop() {
