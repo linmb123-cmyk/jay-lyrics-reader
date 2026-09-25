@@ -556,8 +556,6 @@
     <button class="btn btn-primary" id="playBtn">▶ 朗读</button>
     <button class="btn btn-secondary" id="nextBtn">下一句 ⏭</button>
     <button class="btn btn-success" id="autoBtn">🔄 全文朗读</button>
-    <button class="btn btn-warning" id="loopBtn">🔁 单句循环</button>
-    <button class="btn btn-secondary" id="stopBtn">⏹ 停止</button>
   </div>
 
   <div class="tip">
@@ -1035,8 +1033,6 @@ const playBtn = $('playBtn');
 const prevBtn = $('prevBtn');
 const nextBtn = $('nextBtn');
 const autoBtn = $('autoBtn');
-const loopBtn = $('loopBtn');
-const stopBtn = $('stopBtn');
 const rateInput = $('rate');
 const rateVal = $('rateVal');
 const pitchInput = $('pitch');
@@ -1424,18 +1420,6 @@ autoBtn.addEventListener('click', () => {
     stopAll();
   }
 });
-
-loopBtn.addEventListener('click', () => {
-  loopLineChk.checked = !loopLineChk.checked;
-  if (loopLineChk.checked) {
-    loopBtn.textContent = '⏹ 停止循环';
-    if (!synth.speaking) speakLine(currentLineIdx);
-  } else {
-    loopBtn.textContent = '🔁 单句循环';
-  }
-});
-
-stopBtn.addEventListener('click', stopAll);
 
 // 检测浏览器支持
 if (!('speechSynthesis' in window)) {
