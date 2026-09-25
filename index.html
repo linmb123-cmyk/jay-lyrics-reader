@@ -7,12 +7,7 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
-    height: 100%;
     width: 100%;
-    overflow: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
   }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -24,11 +19,32 @@
     margin: 0 auto;
     background: #fff;
     width: 100%;
-    height: 100vh;
-    height: 100dvh;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
+  }
+  /* 锁定模式：歌词区域吸顶，页面不能再滑动 */
+  body.locked {
     overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+  body.locked .container {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  body.locked .lyrics-area {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 800px;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 50;
+    padding-top: 0;
   }
   .header {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -1230,6 +1246,45 @@ function renderLyrics(idx) {
 
   updateProgress();
 }
+
+// 吸顶锁定：滚动到歌词区域时锁定页面，只有歌词区域可滚动
+let isLocked = false;
+
+function checkLock() {
+  const rect = lyricsArea.getBoundingClientRect();
+  if (!isLocked && rect.top <= 0) {
+    // 歌词区域到达顶部，锁定页面
+    document.body.classList.add('locked');
+    isLocked = true;
+    // 记录滚动位置，解锁时恢复
+    window._savedScrollY = window.scrollY;
+  }
+}
+
+function checkUnlock() {
+  // 歌词区域滚动到顶部时，解锁页面
+  if (isLocked && lyricsArea.scrollTop <= 0) {
+    document.body.classList.remove('locked');
+    isLocked = false;
+    window.scrollTo(0, window._savedScrollY || 0);
+  }
+}
+
+// 页面滚动时检查是否需要锁定
+window.addEventListener('scroll', () => {
+  if (!isLocked) checkLock();
+}, { passive: true });
+
+// 歌词区域滚动到顶部时解锁
+lyricsArea.addEventListener('scroll', () => {
+  if (isLocked && lyricsArea.scrollTop <= 0) {
+    // 解锁页面
+    document.body.classList.remove('locked');
+    isLocked = false;
+    // 恢复之前的滚动位置
+    window.scrollTo(0, window._savedScrollY || 0);
+  }
+}, { passive: true });
 
 // 用户手动滚动时，暂停自动滚动
 let userScrolling = false;
